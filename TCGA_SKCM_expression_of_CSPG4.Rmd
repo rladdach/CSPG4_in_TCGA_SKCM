@@ -1,0 +1,62 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# Introduction  
+Visualization of levels of *CSPG4* across sites of resection/biopsy for TCGA-SKCM.  
+TPM data source - xenabrowser.net.  
+# Setup  
+## Libraries  
+```{r}
+library("dplyr")
+library("stringr")
+library("ggplot2")
+```
+## Data  
+### Phenotype  
+Demographics data for SKCM, with information about site of resection or biopsy.
+```{r}
+TCGA_SKCM_phenotype = read.csv("../input/SKCM_TP_TM_demo_combined_sub.csv", row.names = 1)
+head(TCGA_SKCM_phenotype)
+```
+### Gene expression  
+TPM normalized data for TCGA-SKCM dataset.  
+```{r}
+TCGA_SKCM = readRDS("../input/TCGA_SKCM_GEX_phenotype_sub.RDS")
+TCGA_SKCM[1:5,1:10]
+```
+
+# Pre-processing  
+Combining the detailed demographics with the GEX dataset, and selecting *CSPG4*.  
+```{r}
+TCGA_SKCM$sample = str_sub(TCGA_SKCM$sample, 1, 12)
+common_IDs = Reduce(intersect, list(TCGA_SKCM$sample, TCGA_SKCM_phenotype$submitter_id))
+
+rownames(TCGA_SKCM_phenotype) = TCGA_SKCM_phenotype$submitter_id
+rownames(TCGA_SKCM) = TCGA_SKCM$sample
+
+TCGA_SKCM_phenotype = TCGA_SKCM_phenotype[common_IDs,]
+TCGA_SKCM = TCGA_SKCM[common_IDs,]
+identical(rownames(TCGA_SKCM_phenotype), rownames(TCGA_SKCM))
+```
+
+```{r}
+TCGA_SKCM = cbind(TCGA_SKCM_phenotype, TCGA_SKCM)
+TCGA_SKCM = TCGA_SKCM %>% select(CSPG4, type)
+head(TCGA_SKCM)
+```
+# Visualization  
+```{r}
+ggplot(TCGA_SKCM, aes(y=log2(CSPG4+1), x=type)) + geom_violin() + geom_boxplot(width=0.2) + theme_minimal() + ggtitle("CSPG4 in TCGA-SKCM")
+```
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
